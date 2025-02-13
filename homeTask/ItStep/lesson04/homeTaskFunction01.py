@@ -1,4 +1,4 @@
-def factorial(number):
+def factorial(number):  # решение через цикл
     result = number
     while number > 1:
         result = result * (number - 1)
@@ -6,8 +6,7 @@ def factorial(number):
     return result
 
 
-def factorialRecursion(number):
+def factorialRecursion(number):  # решение через рекурсию
     if number == 1:
         return 1
-    result = number * factorialRecursion(number - 1)
-    return result
+    return number * factorialRecursion(number - 1)
