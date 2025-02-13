@@ -18,22 +18,22 @@
 countStudent = int(input("Введите число студентов: "))
 dictStudents = {}
 for _ in range(countStudent):
-    studentName = ""
+    studentSurname = ""
     studentRate = 0
     while True:
-        studentName = input("Введите фамилию студента: ")
-        if studentName in dictStudents:
+        studentSurname = input("Введите фамилию студента: ")
+        if studentSurname in dictStudents:
             print("Ошибка. Это студент уже записан.")
             continue
         break
     while True:
-        studentRate = int(input(f"Введите оценку студента {studentName}: "))
+        studentRate = int(input(f"Введите оценку студента {studentSurname}: "))
         if 0 < studentRate < 13:
             break
         else:
             print("Ошибка. Оценка выходит за пределы диапазона [1-12].")
             continue
-    dictStudents[studentName] = studentRate
+    dictStudents[studentSurname] = studentRate
 maxRating = max(dictStudents.values())
 for student in dictStudents.keys():
     if dictStudents.get(student) == maxRating:
