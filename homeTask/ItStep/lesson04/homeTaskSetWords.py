@@ -1,2 +1,1 @@
-str = input("Vvedite stroku: ")
-count = len(set(str.split(" ")))
+print(f"В строке {len(set(input("Введите строку: ").split(" ")))} уникальных слов.")
