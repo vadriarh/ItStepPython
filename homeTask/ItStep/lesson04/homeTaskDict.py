@@ -1,4 +1,4 @@
-# dictStudents = {
+# dictStudents = {    #тестовый словарь из студентов
 #     "Иванов": 10,
 #     "Петров": 11,
 #     "Сидоров": 7,
@@ -35,6 +35,7 @@ for _ in range(countStudent):
             continue
     dictStudents[studentSurname] = studentRate
 maxRating = max(dictStudents.values())
+print(f"\nСтуденты с максимальным балом [{maxRating}]:")
 for student in dictStudents.keys():
     if dictStudents.get(student) == maxRating:
         print(student, dictStudents[student])
