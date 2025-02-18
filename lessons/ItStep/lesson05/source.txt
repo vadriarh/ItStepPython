@@ -1,0 +1,9 @@
+# stroka[begin(<=):end(>):step]   begin<<<<end
+# name = "Programmirovanie"
+# print(name[6:8])
+# print(name[:8])
+# print(name[8:])
+# print(name[:])
+# print(name[::2])
+# print(name[::2])
+# print(name)
