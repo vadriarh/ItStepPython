@@ -28,7 +28,7 @@ except ZeroDivisionError:
     print("Ошибка. Деление на 0 недопустимо.")
 
 try:
-    print(f"Результат равен {result}.\n"+
+    print(f"Результат равен {result}.\n" +
           "Расчет закончен.")
 except NameError:
     print("Расчет провален.")
