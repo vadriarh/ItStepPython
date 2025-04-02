@@ -54,12 +54,12 @@ class Pizza(Dish):
 
 
 class Pasta(Dish):
-    def __init__(self, name: str, price: float, portion: int, sos_type: str):
+    def __init__(self, name: str, price: float, portion: int, sos_type: str = None):
         super().__init__(name, price, portion)
         self.sos_type = sos_type
 
     def checkout(self):
-        return self.get_portion() * (self.get_price() + 7.5 if self.sos_type else 0)
+        return self.get_portion() * (self.get_price() + (7.5 if self.sos_type else 0))
 
     def get_info(self):
         return (f"{self.get_portion()} {self.get_name()} pastas at {self.checkout()}"
