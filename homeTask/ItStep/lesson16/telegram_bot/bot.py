@@ -26,6 +26,18 @@ async def about(update: Update, context: CallbackContext):
     message = "Я учебный Telegram-бот, созданный на Python с использованием async библиотеки."
     await update.message.reply_text(message)
 
+async def help(update: Update, context: CallbackContext):
+    logging(update)
+    message = ("Список доступных команд:\n"
+               "- /start — приветствие\n"
+               "- /help — список команд\n"
+               "- /about — кто я такой\n"
+               "- /time — текущее время\n"
+               "- /echo — повторяет текст\n"
+               "- /reverse — переворачивает фразу\n"
+               "- /status — загрузка системы")
+    await update.message.reply_text(message)
+
 async def time(update: Update, context: CallbackContext):
     logging(update)
     now = datetime.now().strftime("%H:%M:%S %d.%m.%Y")
@@ -72,6 +84,7 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("about", about))
+    app.add_handler(CommandHandler("help", help))
     app.add_handler(CommandHandler("time", time))
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(CommandHandler("reverse", reverse))
