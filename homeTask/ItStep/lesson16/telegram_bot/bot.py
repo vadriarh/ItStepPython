@@ -52,6 +52,14 @@ async def echo(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text(message)
 
+async def echo_command(update: Update, context: CallbackContext):
+    if context.args: # аргументы после команды /echo
+        print(context.args) # вывод аргументов в консоль ["Привет", "мир"]
+        echo = " ".join(context.args) # объединение аргументов в строку
+        await update.message.reply_text(echo) # отправка сообщения с текстом
+    else:
+        await update.message.reply_text("Пожалуйста, укажите текст после команды /echo.")
+
 
 
 async def reverse(update: Update, context: CallbackContext):
