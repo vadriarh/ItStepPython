@@ -1,5 +1,3 @@
-from gc import callbacks
-
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CommandHandler, CallbackContext, CallbackQueryHandler, ApplicationBuilder, MessageHandler, \
     filters, ConversationHandler
@@ -56,6 +54,10 @@ async def contacts(update: Update, context: CallbackContext):
         "Выберите действие: ", reply_markup=keyboard
     )
 
+#update.message - это объект, который содержит информацию о сообщении, которое было отправлено в чат
+#update.callback_query - это объект, который содержит информацию о нажатой кнопке CallbackQueryHandler
+#update.message.text - это текст сообщения, которое было отправлено в чат вклюячая команды
+#update.inline_query - это объект, который содержит информацию о нажатой кнопке в инлайн-клавиатуре
 
 async def button_handler(update: Update, context: CallbackContext):
     query = update.callback_query
