@@ -7,7 +7,7 @@ load_dotenv()
 
 DB_NAME = os.getenv("DB_NAME")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
-LIMIT_SLOTS = 20
+DEFAULT_LIMIT_SLOTS = 20
 
 
 def connect_db():
@@ -68,7 +68,7 @@ def add_user(telegram_id: int, username: str):
 
 def add_note(telegram_id: int, note: str):
     user = get_user(telegram_id)
-    if user["slots"] < LIMIT_SLOTS:
+    if user["slots"] < DEFAULT_LIMIT_SLOTS:
         with connect_db() as conn:
             conn.execute("""
                INSERT INTO notes (telegram_id, content)
@@ -142,6 +142,8 @@ def search_note(note: str):
             SELECT telegram_id FROM notes WHERE content = ?
             """, (note,))
         users = cursor.fetchall()
+    message = f"Администратор ищет пользователей с заметкой: {note}."
+    logging_message(message)
     return users
 
 
@@ -150,9 +152,13 @@ def get_users():
         cursor = conn.execute("""
             SELECT * FROM users""")
         users = cursor.fetchall()
+    message = f"Администратор запросил всех пользователей."
+    logging_message(message)
     return users
 
 
 def change_limit_slots(new_limit: int):
-    global LIMIT_SLOTS
-    LIMIT_SLOTS = new_limit
+    global DEFAULT_LIMIT_SLOTS
+    DEFAULT_LIMIT_SLOTS = new_limit
+    message = f"Администратор изменил число слотов на {new_limit}."
+    logging_message(message)
