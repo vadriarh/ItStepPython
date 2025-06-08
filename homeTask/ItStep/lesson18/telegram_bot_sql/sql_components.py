@@ -81,9 +81,13 @@ def add_note(telegram_id: int, note: str):
                 WHERE telegram_id = ?
            """, (user["slots"]+1, telegram_id))
         message = f"Добавлена заметка \"{note}\" для пользователя {telegram_id}"
+        logging_message(message)
+        return True
     else:
-        message = "Превышен лимит доступных слотов. Необходимо удалить заметки."
-    logging_message(message)
+        message = "Не удалось добавить заметку по причине превышения числа слотов."
+        logging_message(message)
+        return False
+
 
 
 def show_notes(telegram_id: int):

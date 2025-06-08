@@ -24,8 +24,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     note = update.message.text.removeprefix("/add ")
-    sql_components.add_note(user_id, note)
-    await update.message.reply_text(f"Добавлена заметка: {note}")
+    if sql_components.add_note(user_id, note):
+        await update.message.reply_text(f"Добавлена заметка: {note}")
+    else:
+        await update.message.reply_text("Превышен лимит доступных слотов. Необходимо удалить заметки.")
 
 
 async def notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
