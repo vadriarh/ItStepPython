@@ -52,7 +52,7 @@ def get_history(user_id: int):
                 FROM transactions WHERE user_id = ?
                 ORDER BY created_at DESC LIMIT 5
             """, (user_id,))
-        return cursor.fetchall()
+            return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Ошибка получения истории для пользователя ID{user_id} - {e}")
         return None
@@ -96,5 +96,5 @@ def get_summary_history(user_id:int):
             result["expense"] = cursor.fetchone()[0] or 0
             return result
     except sqlite3.Error as e:
-        print(f"Ошибка получения истории доходов и расходов для пользователя ID{user_id} - {e}")
+        print(f"Ошибка получения сводки для пользователя ID{user_id} - {e}")
         return None

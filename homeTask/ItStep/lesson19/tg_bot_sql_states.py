@@ -1,4 +1,3 @@
-import sqlite3
 import time
 
 import homeTask.ItStep.lesson19.sql_components as sql_components
@@ -17,7 +16,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN_ID")
 # команды бота
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Добавить", "Баланс"], ["История", "Помощь"]]
+    reply_keyboard = [["Добавить", "Баланс"], ["История", "Сводка"],["Помощь"]]
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard,
         resize_keyboard=True,
@@ -54,6 +53,7 @@ async def help_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"Доступные команды:\n"
                     f"       /add     - добавить новую транзакцию\n"
                     f"       /balance - показать текущий баланс\n"
+                    f"       /summary - показать сводку по категориям\n"
                     f"       /history - показать последние операции\n"
                     f"       /help    - показать эту справку\n"
                     f"       /cancel  - отменить текущую операцию\n\n"
@@ -66,11 +66,12 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = sql_components.get_summary_history(user_id)
     if result:
         await update.message.reply_text(
-            f"Общий размер транзакций по катешориям:\n"
+            f"Общий размер транзакций по категориям:\n"
             f" \t\t(Доход: {result["income"]}\n"
             f" \t\tРасход: {result["expense"]})")
     else:
-        await update.message.reply_text("Ошибка получения баланса из базы данных.")
+        await update.message.reply_text("Ошибка получения сводки из базы данных.")
+
 
 # обработчик состояний
 
@@ -102,6 +103,9 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         amount = float(update.message.text)
+        if amount <= 0:
+            await update.message.reply_text("Пожалуйста, введите положительную сумму.")
+            return AMOUNT
         context.user_data["amount"] = amount
         await update.message.reply_text("Введите описание операции:")
         return DESCRIPTION
@@ -112,13 +116,14 @@ async def set_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    type_transaction = "доход" if context.user_data["type"] == "income" else "расход"
+    type_transaction = context.user_data["type"]
+    type_display = "доход" if type_transaction == "income" else "расход"
     amount = context.user_data["amount"]
     description = update.message.text
     result = sql_components.add_transaction(user_id, type_transaction, amount, description)
     if result:
         await update.message.reply_text(
-            f"Операция добавлена:\nТип: {type_transaction}\nСумма: {amount}\nОписание: {description}")
+            f"Операция добавлена:\nТип: {type_display}\nСумма: {amount}\nОписание: {description}")
     else:
         await update.message.reply_text("Ошибка обращения к базе данных для записи транзакции.")
     return ConversationHandler.END
@@ -198,6 +203,7 @@ async def reply_button_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     buttons_map = {
         "Баланс": balance,
         "История": history,
+        "Сводка": summary,
         "Помощь": help_bot,
     }
     if text in buttons_map:
@@ -210,7 +216,7 @@ def main():
     while not sql_components.create_table():
         time_to_reboot = 5
         print(f"Повторная попытка создания через {time_to_reboot}сек")
-        time.sleep(time_to_reboot * 1000)
+        time.sleep(time_to_reboot)
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
@@ -220,6 +226,7 @@ def main():
     app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(CommandHandler("clear", clear_start))
     app.add_handler(CommandHandler("help", help_bot))
+    app.add_handler(CommandHandler("summary", summary))
     app.add_handler(conv_handler_add)
     app.add_handler(conv_handler_clear)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_button_handler))
