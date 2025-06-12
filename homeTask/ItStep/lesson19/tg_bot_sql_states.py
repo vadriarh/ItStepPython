@@ -28,23 +28,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     result = sql_components.get_balance(user_id)
-    if isinstance(result, sqlite3.Error):
-        await update.message.reply_text("Ошибка получения баланса из базы данных.")
-    else:
+    if result:
         await update.message.reply_text(
             f"Ваш баланс: {result["balance"]} (Доход: {result["income"]}, Расход: {result["expense"]})")
+    else:
+        await update.message.reply_text("Ошибка получения баланса из базы данных.")
 
 
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     rows = sql_components.get_history(user_id)
-    if rows:
+    if rows is None:
+        await update.message.reply_text("Ошибка получения истории из базы данных.")
+    elif rows:
         result = "Последние 5 транзакций:\n"
         for row in rows:
             result += f"{row[3]} - {row[0]}: {row[1]} (Описание: {row[2]})\n"
         await update.message.reply_text(result)
-    elif isinstance(rows, sqlite3.Error):
-        await update.message.reply_text("Ошибка получения истории из базы данных.")
     else:
         await update.message.reply_text("Нет сохранённых транзакций.")
 
@@ -109,7 +109,7 @@ async def set_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = context.user_data["amount"]
     description = update.message.text
     result = sql_components.add_transaction(user_id, type_transaction, amount, description)
-    if not isinstance(result, sqlite3.Error):
+    if result:
         await update.message.reply_text(
             f"Операция добавлена:\nТип: {type_transaction}\nСумма: {amount}\nОписание: {description}")
     else:

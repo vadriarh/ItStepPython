@@ -27,7 +27,7 @@ def create_table():
             return True
     except sqlite3.Error as e:
         print(f"Ошибка создания базы данных {DB_NAME}")
-        return False
+        return None
 
 
 
@@ -41,7 +41,7 @@ def add_transaction(user_id: int, type_transaction: str, amount: float, descript
             return True
     except sqlite3.Error as e:
         print(f"Ошибка добавления транзакции для пользователя ID{user_id} - {e}")
-        return e
+        return None
 
 
 def get_history(user_id: int):
@@ -55,29 +55,18 @@ def get_history(user_id: int):
         return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Ошибка получения истории для пользователя ID{user_id} - {e}")
-        return e
+        return None
 
 
 def get_balance(user_id: int):
-    try:
-        with connect_db() as conn:
-            result = {}
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income'
-                """, (user_id,))
-            result["income"] = cursor.fetchone()[0] or 0
-
-            cursor.execute("""
-                SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense'
-                """, (user_id,))
-            result["expense"] = cursor.fetchone()[0] or 0
-
+    result = get_summary_history(user_id)
+    if result:
         result["balance"] = result["income"] - result["expense"]
         return result
-    except sqlite3.Error as e:
-        print(f"Ошибка получения баланса для пользователя ID{user_id} - {e}")
-        return e
+    else:
+        print(f"Ошибка получения баланса для пользователя ID{user_id}")
+        return None
+
 
 
 def remove_all_transaction(user_id: int):
@@ -89,4 +78,7 @@ def remove_all_transaction(user_id: int):
             return True
     except sqlite3.Error as e:
         print(f"Ошибка удаления записей для пользователя ID{user_id} - {e}")
-        return False
+        return None
+
+def get_summary_history(user_id:int):
+    pass
