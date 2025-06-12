@@ -81,4 +81,20 @@ def remove_all_transaction(user_id: int):
         return None
 
 def get_summary_history(user_id:int):
-    pass
+    try:
+        with connect_db() as conn:
+            result = {}
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income'
+                """, (user_id,))
+            result["income"] = cursor.fetchone()[0] or 0
+
+            cursor.execute("""
+                SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense'
+                """, (user_id,))
+            result["expense"] = cursor.fetchone()[0] or 0
+            return result
+    except sqlite3.Error as e:
+        print(f"Ошибка получения истории доходов и расходов для пользователя ID{user_id} - {e}")
+        return None

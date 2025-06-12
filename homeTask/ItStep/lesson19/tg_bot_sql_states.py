@@ -61,9 +61,16 @@ async def help_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_message)
 
 
-async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE): \
-        pass
-
+async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    result = sql_components.get_summary_history(user_id)
+    if result:
+        await update.message.reply_text(
+            f"Общий размер транзакций по катешориям:\n"
+            f" \t\t(Доход: {result["income"]}\n"
+            f" \t\tРасход: {result["expense"]})")
+    else:
+        await update.message.reply_text("Ошибка получения баланса из базы данных.")
 
 # обработчик состояний
 
