@@ -1,3 +1,6 @@
+import sqlite3
+import time
+
 import homeTask.ItStep.lesson19.sql_components as sql_components
 import os
 
@@ -10,10 +13,11 @@ from dotenv import load_dotenv
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN_ID")
 
+
 # команды бота
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Добавить", "Баланс"], ["История","Помощь"]]
+    reply_keyboard = [["Добавить", "Баланс"], ["История", "Помощь"]]
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard,
         resize_keyboard=True,
@@ -24,43 +28,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     result = sql_components.get_balance(user_id)
-    await update.message.reply_text(
-        f"Ваш баланс: {result["balance"]} (Доход: {result["income"]}, Расход: {result["expense"]})")
+    if isinstance(result, sqlite3.Error):
+        await update.message.reply_text("Ошибка получения баланса из базы данных.")
+    else:
+        await update.message.reply_text(
+            f"Ваш баланс: {result["balance"]} (Доход: {result["income"]}, Расход: {result["expense"]})")
 
 
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    await update.message.reply_text(f"Последние 5 операций:\n     {sql_components.get_history(user_id)}")
-
-
-
-async def transfer_transaction(update:Update,context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    type_transaction = context.user_data["type"]
-    amount = context.user_data["amount"]
-    description = context.user_data["description"]
-    sql_components.add_transaction(user_id,type_transaction,amount,description)
+    rows = sql_components.get_history(user_id)
+    if rows:
+        result = "Последние 5 транзакций:\n"
+        for row in rows:
+            result += f"{row[3]} - {row[0]}: {row[1]} (Описание: {row[2]})\n"
+        await update.message.reply_text(result)
+    elif isinstance(rows, sqlite3.Error):
+        await update.message.reply_text("Ошибка получения истории из базы данных.")
+    else:
+        await update.message.reply_text("Нет сохранённых транзакций.")
 
 
 async def help_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = (f"Данный бот - личный кошелек для учета доходов и расходов.\n\n"
-               f"Доступные команды:\n"
-               f"       /add     - добавить новую транзакцию\n"
-               f"       /balance - показать текущий баланс\n"
-               f"       /history - показать последние операции\n"
-               f"       /help    - показать эту справку\n"
-               f"       /cancel  - отменить текущую операцию\n\n"
-               f"Или используйте кнопки:")
-    await update.message.reply_text(message)
+    help_message = (f"Данный бот - личный кошелек для учета доходов и расходов.\n\n"
+                    f"Доступные команды:\n"
+                    f"       /add     - добавить новую транзакцию\n"
+                    f"       /balance - показать текущий баланс\n"
+                    f"       /history - показать последние операции\n"
+                    f"       /help    - показать эту справку\n"
+                    f"       /cancel  - отменить текущую операцию\n\n"
+                    f"Или используйте кнопки:")
+    await update.message.reply_text(help_message)
 
 
+async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE): \
+        pass
 
-async def summary(update:Update, context: ContextTypes.DEFAULT_TYPE):\
-    pass
 
 # обработчик состояний
 
 TYPE, AMOUNT, DESCRIPTION = range(3)
+
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inline_keyboard = [
@@ -72,15 +80,17 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Выберите тип операции", reply_markup=reply_markup)
     return TYPE
 
+
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if update.callback_query.data == "cancel":
         await query.edit_message_text("Операция отменена.")
         return ConversationHandler.END
-    context.user_data["type"] = query.data # Сохраняем тип операции {"type": "income" или "expense"}
+    context.user_data["type"] = query.data  # Сохраняем тип операции {"type": "income" или "expense"}
     await query.edit_message_text("Какая сумма операции?")
     return AMOUNT
+
 
 async def set_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -92,25 +102,31 @@ async def set_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Пожалуйста, введите корректную сумму.")
         return AMOUNT
 
+
 async def set_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     type_transaction = "доход" if context.user_data["type"] == "income" else "расход"
     amount = context.user_data["amount"]
     description = update.message.text
-    sql_components.add_transaction(user_id,type_transaction,amount,description)
-    await update.message.reply_text(
-        f"Операция добавлена:\nТип: {type_transaction}\nСумма: {amount}\nОписание: {description}")
+    result = sql_components.add_transaction(user_id, type_transaction, amount, description)
+    if not isinstance(result, sqlite3.Error):
+        await update.message.reply_text(
+            f"Операция добавлена:\nТип: {type_transaction}\nСумма: {amount}\nОписание: {description}")
+    else:
+        await update.message.reply_text("Ошибка обращения к базе данных для записи транзакции.")
     return ConversationHandler.END
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Операция отменена.")
     return ConversationHandler.END
 
+
 conv_handler_add = ConversationHandler(
     entry_points=[
         CommandHandler("add", add),
         MessageHandler(filters.TEXT & filters.Regex("^Добавить$"), add)
-        ],
+    ],
     states={
         TYPE: [
             CallbackQueryHandler(choose_type)
@@ -125,9 +141,10 @@ conv_handler_add = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)]
 )
 
-CLEAR, CONFIRM = range(2)
+CONFIRM = range(1)
 
-async def clear_start(update:Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def clear_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inline_keyboard = [
         [InlineKeyboardButton("Да", callback_data="clear_yes"),
          InlineKeyboardButton("Нет", callback_data="cancel")]
@@ -136,26 +153,29 @@ async def clear_start(update:Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Вы уверены?", reply_markup=reply_markup)
     return CONFIRM
 
-async def clear_confirm(update:Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def clear_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if update.callback_query.data == "cancel":
-        await query.edit_message_text("Операция отменена.")
-        return ConversationHandler.END
 
-    user_id = update.effective_user.id
-    if sql_components.remove_all_transaction(user_id):
-        await query.edit_message_text("История транзакций удалена")
-        return ConversationHandler.END
+    if query.data == "cancel":
+        await query.edit_message_text("Операция отменена.")
+    elif query.data == "clear_yes":
+        user_id = update.effective_user.id
+        if sql_components.remove_all_transaction(user_id):
+            await query.edit_message_text("История транзакций удалена")
+        else:
+            await query.edit_message_text("Ошибка удаления истории транзакций.")
     else:
-        await query.edit_message_text("Ошибка удаления истории транзакций.")
-        return ConversationHandler.END
+        await query.edit_message_text("Неизвестная команда.")
+
+    return ConversationHandler.END
 
 
 conv_handler_clear = ConversationHandler(
     entry_points=[
         CommandHandler("clear", clear_start)
-        ],
+    ],
     states={
         CONFIRM: [
             CallbackQueryHandler(clear_confirm)
@@ -163,6 +183,8 @@ conv_handler_clear = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel)]
 )
+
+
 # обработчик текста
 async def reply_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -174,12 +196,14 @@ async def reply_button_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     if text in buttons_map:
         await buttons_map[text](update, context)
     else:
-        await start(update,context)
-
+        await start(update, context)
 
 
 def main():
-    sql_components.create_table()
+    while not sql_components.create_table():
+        time_to_reboot = 5
+        print(f"Повторная попытка создания через {time_to_reboot}сек")
+        time.sleep(time_to_reboot * 1000)
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
