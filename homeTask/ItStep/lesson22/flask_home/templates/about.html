@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}About us{% endblock %}
+
+{% block body %}
+<!--    Адрес и контакты-->
+  <h1>Наши контакты:</h1>
+  <h2>Адрес: {{ contacts.address }}</h2>
+  <h2>Email: {{ contacts.email }}</h2>
+  <h2>Телефон: {{ contacts.phone }}</h2>
+  <h2>Ссылки:</h2>
+  <ul>
+    <li><h2><a href="{{ contacts.facebook }}"  target="_blank">Facebook SweetLife</a></h2></li>
+    <li><h2><a href="{{ contacts.instagram }}" target="_blank">Instagram SweetLife</a></h2></li>
+  </ul>
+{% endblock %}

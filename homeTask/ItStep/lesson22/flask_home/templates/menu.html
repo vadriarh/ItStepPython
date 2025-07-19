@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Menu{% endblock %}
+
+{% block body %}
+
+<h2 style="text-align: center">Меню</h2>
+<table>
+    {% if dishes %}
+    <tr>
+        <th></th>
+        <th>Блюдо</th>
+        <th>Описание</th>
+        <th>Цена</th>
+    </tr>
+    {% for dish in dishes %}
+    <tr class="product-row">
+        <td><img src="{{ url_for('static', filename='products/' + dish.img_original_url) }}" alt="{{ dish.name }}">
+        </td>
+        <td>{{ dish.name }}</td>
+        <td>{{ dish.description }}</td>
+        <td>{{ dish.price }}</td>
+    </tr>
+    {% endfor %}
+    {% else %}
+    <h3>К сожалению, пока нет готовых блюд</h3>
+    {% endif %}
+</table>
+{% endblock %}

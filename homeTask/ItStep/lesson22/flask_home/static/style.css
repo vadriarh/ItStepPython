@@ -1,0 +1,73 @@
+body{
+    background-image: url("cafe_background.jpg");
+    background-size: cover;
+    margin: 0;
+    padding: 0;
+    background-position: center;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center; /* горизонтальное центрирование */
+    align-items: center;
+}
+img{
+    width: 300px;
+}
+.sidebar-left, .sidebar-right {
+    flex: 1;
+    /* Здесь фон будет виден */
+}
+.sweet-logo{
+    display:flex;
+    font-size: 150%;
+    align-items: center;
+    max-width: 1200px;
+}
+.sweet-logo img{
+    width: 150px;
+}
+
+.nav{
+    text-align: center;
+    font-size: x-large;
+}
+
+.content {
+    flex: 2;
+    background-color: white;
+    padding: 20px;
+    max-width: 800px;
+}
+table{
+    width: 100%;
+    border: 3px solid rgb(24, 20, 16);
+    padding: 250px;
+    margin: 5px;
+    /*width: 400px;*/
+    text-align: center;
+    border-collapse: collapse;
+}
+table img{
+    width: 50%;
+}
+h1{
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+h2{
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+table th{
+    padding: 16px;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    color:green
+}
+table td{
+    padding: 8px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.product-row:hover{
+    background-color: #888;
+}
+footer{
+    text-align: right;
+    margin-top: 30px;
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}My App{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="content">
+        <div class = "sweet-logo">
+            <img src="{{ url_for('static', filename='cafe_logo.jpg') }}" alt="LoGo PNG">
+            <h1>Sweet Life - sweet everyday</h1>
+        </div>
+        <div class="nav">
+            <a href="/">Главная</a>
+            <a href="/menu">Меню</a>
+            <a href="/about">О нас</a>
+        </div>
+        {% block body %}{% endblock %}
+        <footer>
+            <p>«© 2025 Кафе „Сладкая жизнь“»</p>
+        </footer>
+    </div>
+</body>
+</html>
