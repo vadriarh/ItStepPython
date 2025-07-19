@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}User{% endblock %}
+
+{% block body %}
+    <h1>User list: </h1>
+    <ul>
+<!--        {% for user in people %}-->
+<!--            <li>{{ user }}</li>-->
+<!--        {% endfor %}-->
+        {% for name,age in people.items() %}
+            <li>{{ name }} is {{ age }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
