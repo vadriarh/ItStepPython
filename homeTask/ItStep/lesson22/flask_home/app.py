@@ -65,42 +65,23 @@ with app.app_context():
 # Routes
 @app.route("/")
 def main():
-    mdb = get_db()  # Получение подключения к базе данных
+    # Получение подключения к базе данных
+    mdb = get_db()
     mdb.execute("""
                 CREATE TABLE IF NOT EXISTS users
                 (
-                    id
-                    INTEGER
-                    PRIMARY
-                    KEY
-                    AUTOINCREMENT,
-                    name
-                    TEXT
-                    NOT
-                    NULL,
-                    age
-                    INTEGER
-                    NOT
-                    NULL
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    age INTEGER NOT NULL
                 )
-                """)  # Создание таблицы users, если она не существует
+                """)
+    # Создание таблицы users, если она не существует
     mdb.execute("""
                 CREATE TABLE IF NOT EXISTS authorize
                 (
-                    id
-                    INTEGER
-                    PRIMARY
-                    KEY
-                    AUTOINCREMENT,
-                    login
-                    TEXT
-                    NOT
-                    NULL
-                    UNIQUE,
-                    password
-                    INTEGER
-                    NOT
-                    NULL
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    login TEXT NOT NULL UNIQUE,
+                    password INTEGER NOT NULL
                 )
                 """)
     mdb.commit()  # Сохранение изменений в базе данных
@@ -155,37 +136,41 @@ def form_reg():
         elif len(password) < 6:
             error = "Password must be at least 6 characters."
             return render_template('reg_form.html', error=error)
-        #trying input userdata into bd
+        # trying input userdata in bd
         try:
             mdb.execute("INSERT INTO authorize (login, password) VALUES (?, ?)", (login, password))
             db.commit()
             message = "Новый пользователь зарегистрирован."
+            return render_template('reg_form.html', message=message)
         except sqlite3.IntegrityError as e:
             error = f"Ошибка сохранения: {e}"
             return render_template('reg_form.html', error=error)
-
-        return render_template('reg_form.html', error=error)
     return render_template('reg_form.html')
 
 
 @app.route("/login", methods=["GET", "POST"])
 def form_log():
-    error = None
+    if request.method == "GET":
+        return render_template('login_form.html')
     if request.method == "POST":
         # get userdata
-        username = request.form.get("username")
+        login = request.form.get("login")
         password = request.form.get("password")
-        # validate
-        if username and password:
-            if username == "admin" and password == "123":
-                return "Welcome administrator."
-            elif username == "admin" and password != "123":
-                return "Incorrect password."
-            else:
-                return f"Hello,{username}. Your password is {password}."
-        else:
+        # validate input userdata
+        if not login or not password:
             error = "Please fill in all fields."
-    return render_template('login_form.html', error=error)
+            return render_template('login_form.html', error=error)
+        # check userdata into bd
+        mdb = get_db()
+        user = mdb.execute("SELECT * FROM authorize WHERE login = ? AND password ", (login, password)).fetchone()
+        #finally checking userdata
+        if user:
+            if user["login"] == login and user["password"] == password:
+                return f"Добро пожаловать, {login}."
+        else:
+            error = "Такого пользователя не существует."
+            return render_template('login_form.html', error=error)
+    return render_template('login_form.html')
 
 
 @app.route("/comments", methods=["GET", "POST"])
@@ -238,13 +223,6 @@ def about():
                 'phone': os.getenv("CONTACT_PHONE")}
 
     return render_template("about.html", contacts=contacts)
-
-
-@app.route("/user")
-def search_user():
-    name = request.args.get("name")
-    result = db.session.execute(select(Comment).where(Comment.name.like("%" + name + "%")))
-    return result
 
 
 @app.route("/menu")
