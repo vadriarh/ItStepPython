@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Comments{% endblock %}
+
+{% block body %}
+<h1>Comments</h1>
+<form action="{{ url_for('send_comment') }}" method="post">
+    <label for="username">Name:</label>
+    <input type="text" id="username" name="username" required>
+    <br>
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email">
+    <br>
+    <h3>Твоя оценка</h3>
+    <div class="stars" aria-required="true">
+        <input id="star-1" type="radio" name="stars" value="1">
+        <label for="star-1">1</label>
+        <input id="star-2" type="radio" name="stars" value="2">
+        <label for="star-2">2</label>
+        <input id="star-3" type="radio" name="stars" value="3">
+        <label for="star-3">3</label>
+        <input id="star-4" type="radio" name="stars" value="4">
+        <label for="star-4">4</label>
+        <input id="star-5" type="radio" name="stars" value="5">
+        <label for="star-5">5</label>
+    </div>
+    <input type="text" maxlength="255" name="comment" >
+    <br>
+    <button type="submit">Submit</button>
+</form>
+
+{% if error %}
+    <h2 style="color:red">{{ error }}</h2>
+{% elif message %}
+    <h3 style="color:green">{{ message }}</h3>
+{% endif %}
+
+{% endblock %}
