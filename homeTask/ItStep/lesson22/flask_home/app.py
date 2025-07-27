@@ -81,7 +81,7 @@ def main():
                 (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     login TEXT NOT NULL UNIQUE,
-                    password INTEGER NOT NULL
+                    password TEXT NOT NULL
                 )
                 """)
     mdb.commit()  # Сохранение изменений в базе данных
@@ -126,7 +126,7 @@ def form_reg():
         return render_template('reg_form.html')
     if request.method == "POST":
         # get userdata
-        login = request.form.get("name")
+        login = request.form.get("login")
         password = request.form.get("password")
         # validate input userdata
         mdb = get_db()
@@ -139,9 +139,8 @@ def form_reg():
         # trying input userdata in bd
         try:
             mdb.execute("INSERT INTO authorize (login, password) VALUES (?, ?)", (login, password))
-            db.commit()
-            message = "Новый пользователь зарегистрирован."
-            return render_template('reg_form.html', message=message)
+            mdb.commit()
+            return "Новый пользователь зарегистрирован."
         except sqlite3.IntegrityError as e:
             error = f"Ошибка сохранения: {e}"
             return render_template('reg_form.html', error=error)
@@ -162,11 +161,13 @@ def form_log():
             return render_template('login_form.html', error=error)
         # check userdata into bd
         mdb = get_db()
-        user = mdb.execute("SELECT * FROM authorize WHERE login = ? AND password ", (login, password)).fetchone()
+        user = mdb.execute("SELECT * FROM authorize WHERE login = ?", (login, )).fetchone()
         #finally checking userdata
         if user:
-            if user["login"] == login and user["password"] == password:
+            if user["password"] == password:
                 return f"Добро пожаловать, {login}."
+            error = "Пароли не совпадают."
+            return render_template('login_form.html', error=error)
         else:
             error = "Такого пользователя не существует."
             return render_template('login_form.html', error=error)
