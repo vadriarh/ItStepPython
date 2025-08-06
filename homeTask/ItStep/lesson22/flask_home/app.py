@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, g
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+
+from model import *
 
 from dotenv import load_dotenv
 import os
@@ -28,11 +31,26 @@ def close_db(error):
 
 # ORM-connection with SQLALCHEMY
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('MENU_DATABASE')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db = SQLAlchemy(app)  # Инициализация SQLAlchemy
+migrate = Migrate(app, db)  # Инициализация миграций
 
 
 # ORM Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(25), nullable=False)
+    surname = db.Column(db.String(25), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"(repr)User (name:{self.name}, surname: {self.surname}, age:{self.year})"
+
+    # def __str__(self):
+    #     return f"(str)User ({self.name}, age:{self.year})"
+
+
 class Dish(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(25))
@@ -49,7 +67,7 @@ class Comment(db.Model):
     comment = db.Column(db.Text)
 
 
-# Adding in database, when is empty
+# Initializing and adding in database, when is empty
 with app.app_context():
     db.create_all()
     if not Dish.query.first():
@@ -67,6 +85,7 @@ with app.app_context():
 def main():
     # Получение подключения к базе данных
     mdb = get_db()
+    # fmt off
     mdb.execute("""
                 CREATE TABLE IF NOT EXISTS users
                 (
@@ -84,6 +103,18 @@ def main():
                     password TEXT NOT NULL
                 )
                 """)
+    mdb.execute("""
+                CREATE TABLE IF NOT EXISTS comment
+                (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    stars INTEGER NOT NULL,
+                    comment TEXT
+                )
+                """)
+
+    # fmt on
     mdb.commit()  # Сохранение изменений в базе данных
     return render_template("index.html")
 
@@ -161,8 +192,8 @@ def form_log():
             return render_template('login_form.html', error=error)
         # check userdata into bd
         mdb = get_db()
-        user = mdb.execute("SELECT * FROM authorize WHERE login = ?", (login, )).fetchone()
-        #finally checking userdata
+        user = mdb.execute("SELECT * FROM authorize WHERE login = ?", (login,)).fetchone()
+        # finally checking userdata
         if user:
             if user["password"] == password:
                 return f"Добро пожаловать, {login}."
@@ -176,38 +207,79 @@ def form_log():
 
 @app.route("/comments", methods=["GET", "POST"])
 def send_comment():
+    mdb = get_db()
+
+    # Получение списка уже имеющихся отзывов
+    def get_old_comments():
+        # Отслеживание фильтрации
+        rating_select = (request.form.get("rating-select") or "").strip() or None
+        # Построение SQL-query
+        sql_query = "SELECT * FROM comment"
+        # Проверки фильтра рейтинга
+        try:
+            validate_rating_select = (rating_select and
+                                      int(rating_select) in range(1, 6))
+        except ValueError:
+            validate_rating_select = False
+        # Запрос отфильтрованных записей
+        if validate_rating_select:
+            sql_query += f" WHERE stars = ?"
+            comments_raw = mdb.execute(sql_query, (rating_select,)).fetchall()
+        else:
+            comments_raw = mdb.execute(sql_query).fetchall()
+
+        comments = [dict(row) for row in comments_raw]
+        # Получение средней общей оценки
+        avg_stars_raw = mdb.execute("SELECT AVG(stars) FROM comment").fetchone()
+        avg_stars = round(avg_stars_raw[0], 2) if (avg_stars_raw[0] is not None) else None
+        return comments, avg_stars
+
+    # Создание шаблона
+    def return_comment_template(error: str = None):
+        comments, avg_stars = get_old_comments()
+        return render_template('comments.html', error=error, comments=comments, avg_stars=avg_stars)
+
     if request.method == "GET":
-        return render_template("comments.html")
+        return return_comment_template()
     if request.method == "POST":
-        # Получение данных
-        username = request.form.get("username")
-        email = request.form.get("email")
-        stars = request.form.get("stars")
-        comment = request.form.get("comment")
+        # Получение данных и уборка "мусора"
+        username = (request.form.get("username") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        stars_raw = request.form.get("stars")
+        comment = (request.form.get("comment") or "").strip() or None
         # Валидация данных
-        # Валидация рейтинга
-        if not stars:
-            error = "Не выбрана оценка."
-            return render_template('comments.html', error=error)
-        stars = int(stars)
-        if stars not in range(1, 6):
-            error = "Оценка может быть в диапазоне от 1 до 5."
-            return render_template('comments.html', error=error)
+        # Валидация имени
+        if not username:
+            return return_comment_template(error="Не введено имя пользователя.")
         # Валидация email-а
         if not email or "@" not in email:
-            error = "Неправильно введенный email."
-            return render_template('comments.html', error=error)
+            return return_comment_template(error="Неправильно введенный email.")
+        # Валидация рейтинга
+        if not stars_raw:
+            return return_comment_template(error="Не выбрана оценка.")
+        try:
+            stars = int(stars_raw)
+            if stars not in range(1, 6):
+                return return_comment_template(error="Рейтинг вне диапазона 1–5")
+        except ValueError:
+            return return_comment_template(error="Ошибка ввода значения оценки.")
+
         # Валидация комментария
-        if not comment:
-            error = "Пустое поле для отзыва."
-            return render_template('comments.html', error=error)
-        # Сохранение данных в бд
-        db.session.add(Comment(name=username, email=email, stars=stars, comment=comment))
-        db.session.commit()
+        # if not comment:
+        #     error = "Пустое поле для отзыва."
+        #     return render_template('comments.html', error=error)
+
+        # Сохранение данных в ORM-бд
+        # db.session.add(Comment(name=username, email=email, stars=stars, comment=comment))
+        # db.session.commit()
+
+        # Сохранение данных в Manual-бд
+        mdb.execute("INSERT INTO comment (name, email, stars, comment) VALUES (?, ?, ?, ?)",
+                    (username, email, stars, comment))
+        mdb.commit()
         # Завершение работы метода
-        message = f"Спасибо за отзыв, {username}"
-        return render_template('comments.html', message=message)
-    return render_template('comments.html')
+        return redirect(url_for("send_comment"))
+    return return_comment_template()
 
 
 @app.route("/nav")
@@ -225,6 +297,46 @@ def about():
 
     return render_template("about.html", contacts=contacts)
 
+#  CRUD-interface USER
+@app.route("/add_user")
+def add_user():
+    name = request.args.get("name")
+    year = request.args.get("year")
+    surname = request.args.get("surname")
+    user = User(name=name, year=year, surname=surname)
+    db.session.add(user)
+    db.session.commit()
+    return str(user)
+    # return f"User {name}, year: {year}"
+
+@app.route("/update_user")
+def update_user():
+    id = request.args.get("id")
+    name = request.args.get("name")
+
+    user = db.session.get(User,id)
+    if not user:
+        return f"User {id} not found."
+    user.name = name
+    db.session.commit()
+    return f"User {id} is updated."
+
+@app.route("/delete_user")
+def delete_user():
+    id = request.args.get("id")
+    user = db.session.get(User,id)
+    if not user:
+        return f"User {id} not found."
+    db.session.delete(user)
+    db.session.commit()
+    return f"User {id} is deleted."
+
+
+
+@app.route("/users")
+def show_users():
+    users = User.query.all()
+    return "<br>".join(f"{user.id}. {user.name} {user.surname} - {user.year} years old" for user in users)
 
 @app.route("/menu")
 def menu():

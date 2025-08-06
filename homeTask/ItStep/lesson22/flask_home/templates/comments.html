@@ -6,7 +6,7 @@
 <h1>Comments</h1>
 <form action="{{ url_for('send_comment') }}" method="post">
     <label for="username">Name:</label>
-    <input type="text" id="username" name="username" required>
+    <input type="text" id="username" name="username">
     <br>
     <label for="email">Email:</label>
     <input type="email" id="email" name="email">
@@ -24,15 +24,47 @@
         <input id="star-5" type="radio" name="stars" value="5">
         <label for="star-5">5</label>
     </div>
-    <input type="text" maxlength="255" name="comment" >
+    <input type="text" maxlength="255" name="comment">
     <br>
-    <button type="submit">Submit</button>
+    <button type="submit">Отправить отзыв</button>
+    <br>
 </form>
+<div class="comments" id="comments">
+    {% if comments %}
+    <form action="{{ url_for('send_comment') }}" method="post">
+        <select aria-invalid="false" id="rating-select" name="rating-select">
+            <option selected="selected" value="None" label="Все оценки" class="mgmw_wo">wszystkie</option>
+            <option value=5 label="5 звёзд">5 звёзд</option>
+            <option value=4 label="4 звезды">4 звезды</option>
+            <option value=3 label="3 звезды">3 звезды</option>
+            <option value=2 label="2 звезды">2 звезды</option>
+            <option value=1 label="1 звезда">1 звезда</option>
+        </select>
+        <br>
+        <button type="submit">Фильтровать</button>
+    </form>
+    <h3>Оставленные отзывы</h3>
+    <div class="filtration" id="filtration">
+        <h4>Общая средняя оценка: {{avg_stars}}</h4>
+    </div>
+    <ol>
+        {% for comment in comments %}
+        <li>
+            <h4>{{ comment.name }} ({{ comment.email }}) Оценка: {{ comment.stars }}</h4>
+            {{comment.comment if comment.comment else "(Пользователь не оставил комментария)"}}
+        </li>
+        {% endfor %}
+    </ol>
+    {% else %}
+    <h3>Нет комментариев</h3>
+    {% endif %}
 
+
+</div>
 {% if error %}
-    <h2 style="color:red">{{ error }}</h2>
+<h2 style="color:red">{{ error }}</h2>
 {% elif message %}
-    <h3 style="color:green">{{ message }}</h3>
+<h3 style="color:green">{{ message }}</h3>
 {% endif %}
 
 {% endblock %}
