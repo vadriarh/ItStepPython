@@ -336,7 +336,7 @@ def delete_user():
 @app.route("/users")
 def show_users():
     users = User.query.all()
-    return "<br>".join(f"{user.id}. {user.name} {user.surname} - {user.year} years old" for user in users)
+    return "<br>".join(f"{user.id}. {user.name} {user.surname} - {user.birthday} years old" for user in users)
 
 @app.route("/menu")
 def menu():

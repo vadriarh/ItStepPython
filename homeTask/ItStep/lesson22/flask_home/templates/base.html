@@ -6,21 +6,26 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="content">
-        <div class = "sweet-logo">
-            <img src="{{ url_for('static', filename='cafe_logo.jpg') }}" alt="LoGo PNG">
-            <h1>Sweet Life - sweet everyday</h1>
-        </div>
-        <div class="nav">
-            <a href="/">Главная</a>
-            <a href="/menu">Меню</a>
-            <a href="/about">О нас</a>
-            <a href="/comments">Комментарии</a>
-        </div>
-        {% block body %}{% endblock %}
-        <footer>
-            <p>«© 2025 Кафе „Сладкая жизнь“»</p>
-        </footer>
+<div class="content">
+    <div class="sweet-logo">
+        <img src="{{ url_for('static', filename='cafe_logo.jpg') }}" alt="LoGo PNG">
+        <h1>Sweet Life - sweet everyday</h1>
     </div>
+    <div class="nav">
+        <a href="/">Главная</a>
+        <a href="/menu">Меню</a>
+        <a href="/about">О нас</a>
+        <a href="/comments">Комментарии</a>
+    </div>
+    {% block body %}{% endblock %}
+    <footer>
+        <p>«© 2025 Кафе „Сладкая жизнь“»</p>
+    </footer>
+</div>
+{% if error %}
+<h2 style="color:red">{{ error }}</h2>
+{% elif message %}
+<h3 style="color:green">{{ message }}</h3>
+{% endif %}
 </body>
 </html>
