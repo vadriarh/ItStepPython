@@ -1,0 +1,76 @@
+body{
+    background-image: url("college_background.png");
+    background-size: cover;
+    margin: 0;
+    padding: 0;
+    background-position: center;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center; /* горизонтальное центрирование */
+    align-items: center;
+
+}
+.sidebar-left, .sidebar-right {
+    flex: 1;
+    /* Здесь фон будет виден */
+}
+.college-logo{
+    display:flex;
+    font-size: 150%;
+    align-items: center;
+    max-width: 1200px;
+}
+.college-logo img{
+    width: 120px;
+    border-radius: 50%;
+
+
+}
+
+.nav{
+    text-align: center;
+    font-size: x-large;
+}
+
+.content {
+    flex: 2;
+    background-color: white;
+    padding: 20px;
+    max-width: 800px;
+}
+table{
+    width: 100%;
+    border: 3px solid rgb(24, 20, 16);
+    padding: 250px;
+    margin: 5px;
+    /*width: 400px;*/
+    text-align: center;
+    border-collapse: collapse;
+}
+h1{
+    margin:30px;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+h3{
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+
+}
+table th{
+    padding: 16px;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    color:green
+}
+table td{
+    padding: 8px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+form{
+    width:400px;
+    display:flex;
+    align-items: left;
+    flex-direction: column;
+}
+footer{
+    text-align: right;
+    margin-top: 30px;
+}

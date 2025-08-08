@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}College of programming{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="content">
+    <div class="college-logo">
+        <img src="{{ url_for('static', filename='college_logo.png') }}" alt="LoGo PNG">
+        <h1>College of programming </h1>
+        <h3>Step in your future</h3>
+    </div>
+    <div class="nav">
+        <a href="/">Список студентов</a>
+        <a href="/add">Добавление студента</a>
+    </div>
+    {% block body %}{% endblock %}
+    <footer>
+        <p>«© 2025 „College of programming“»</p>
+    </footer>
+</div>
+{% if error %}
+<h2 style="color:red">{{ error }}</h2>
+{% endif %}
+</body>
+</html>

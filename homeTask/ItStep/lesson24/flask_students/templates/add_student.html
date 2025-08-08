@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Main page{% endblock %}
+
+{% block body %}
+<h1 style="text-align: center;">Данные студента</h1>
+<form action="{{ url_for('main.add_student') }}" method="post">
+    <div>
+        <label for="name">Имя: </label>
+        <input type="text" id="name" name="name" required>
+    </div>
+    <br>
+    <div>
+        <label for="surname">Фамилия: </label>
+        <input type="text" id="surname" name="surname" required>
+    </div>
+    <br>
+    <div>
+        <label for="email">Email: </label>
+        <input type="email" id="email" name="email" required>
+    </div>
+    <br>
+    <div>
+        <label for="birthday">День рождения: </label>
+        <input type="date" id="birthday" name="birthday" required>
+    </div>
+    <br>
+    <div>
+        <label for="gender">Пол: </label>
+        <select aria-invalid="false" id="gender" name="gender" required>
+            <option value=Male label="Мужчина">Мужчина</option>
+            <option value=Female label="Женщина">Женщина</option>
+        </select>
+    </div>
+    <br>
+    <div>
+        <label for="course">Курс обучения: </label>
+        <select aria-invalid="false" id="course" name="course" required>
+            <option value=1 label="1 Курс">1 Курс</option>
+            <option value=2 label="2 Курс">2 Курс</option>
+            <option value=3 label="3 Курс">3 Курс</option>
+            <option value=4 label="4 Курс">4 Курс</option>
+            <option value=5 label="5 Курс">5 Курс</option>
+        </select>
+    </div>
+    <br>
+
+    <button type="submit">Добавить студента</button>
+</form>
+{% endblock %}
