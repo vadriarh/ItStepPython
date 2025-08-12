@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, g
+from flask import Flask, render_template, request, redirect, url_for, g, jsonify
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
@@ -7,6 +7,7 @@ from model import *
 from dotenv import load_dotenv
 import os
 import sqlite3
+import json
 
 load_dotenv()
 app = Flask(__name__)
@@ -297,34 +298,60 @@ def about():
 
     return render_template("about.html", contacts=contacts)
 
+
 #  CRUD-interface USER
-@app.route("/add_user")
+@app.route("/add_user", methods=["GET","POST"])
 def add_user():
-    name = request.args.get("name")
-    year = request.args.get("year")
-    surname = request.args.get("surname")
-    user = User(name=name, year=year, surname=surname)
-    db.session.add(user)
-    db.session.commit()
-    return str(user)
-    # return f"User {name}, year: {year}"
+    if request.method == "GET":
+        users = User.query.all()
 
-@app.route("/update_user")
+        return jsonify(([{"id":user.id, "name":user.name,"surname":user.surname, "year":user.year} for user in users]), 200)
+    if request.method == "POST":
+        data = request.get_json()
+        if not "name" in data.keys() or not "year" in data.keys():
+            return jsonify({"error": "Bad request."}, 400)
+        user = User(name=data["name"], year=data["year"], surname=data["surname"])
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({"message": "User added successfully!"}, 201)
+    return None
+
+
+# return f"User {name}, year: {year}"
+
+@app.route("/update_user", methods=["PUT","PATCH"])
 def update_user():
-    id = request.args.get("id")
-    name = request.args.get("name")
-
-    user = db.session.get(User,id)
+    data = request.get_json()
+    user = db.session.get(User, data.get("id"))
     if not user:
-        return f"User {id} not found."
-    user.name = name
+        return jsonify({"error": "Bad id request."}, 400)
+    name = data.get("name")
+    surname = data.get("surname")
+    year = data.get("year")
+    if request.method == "PUT":
+        if name and surname and year:
+            user.name = name
+            user.surname = surname
+            user.year = year
+        else:
+            return jsonify({"error": "Bad  put request."}, 400)
+    elif request.method == "PATCH":
+        if  not name and not surname and not year:
+            return jsonify({"error": "Bad patch request."}, 400)
+        if name:
+            user.name = name
+        if surname:
+            user.surname = surname
+        if year:
+            user.year = year
     db.session.commit()
-    return f"User {id} is updated."
+    return jsonify({"message": f"User id{user.id} updated"}, 201)
+
 
 @app.route("/delete_user")
 def delete_user():
     id = request.args.get("id")
-    user = db.session.get(User,id)
+    user = db.session.get(User, id)
     if not user:
         return f"User {id} not found."
     db.session.delete(user)
@@ -332,11 +359,11 @@ def delete_user():
     return f"User {id} is deleted."
 
 
-
 @app.route("/users")
 def show_users():
     users = User.query.all()
     return "<br>".join(f"{user.id}. {user.name} {user.surname} - {user.birthday} years old" for user in users)
+
 
 @app.route("/menu")
 def menu():
