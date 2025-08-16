@@ -1,8 +1,11 @@
 import sqlite3
 import os
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, func
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from sqlalchemy import func
 from models import *
+from validations import *
+from utils import *
 
 bp = Blueprint("main", __name__)
 
@@ -183,47 +186,47 @@ def add_user():
         users = User.query.all()
 
         return jsonify(
-            ([{"id": user.id, "name": user.name, "surname": user.surname, "year": user.year} for user in users]), 200)
+            ([{"id": user.id, "name": user.name, "surname": user.surname, "years": user.years} for user in users]), 200)
     if request.method == "POST":
         data = request.get_json()
-        if not "name" in data.keys() or not "year" in data.keys():
-            return jsonify({"error": "Bad request."}, 400)
-        user = User(name=data["name"], year=data["year"], surname=data["surname"])
+        if not "name" in data.keys() or not "years" in data.keys():
+            return jsonify({"error": "Bad request."}), 400
+        user = User(name=data["name"], years=data["years"], surname=data["surname"])
         db.session.add(user)
         db.session.commit()
-        return jsonify({"message": "User added successfully!"}, 201)
+        return jsonify({"message": "User added successfully!"}), 201
     return None
 
 
-# return f"User {name}, year: {year}"
+# return f"User {name}, years: {years}"
 
 @bp.route("/update_user", methods=["PUT", "PATCH"])
 def update_user():
     data = request.get_json()
     user = db.session.get(User, data.get("id"))
     if not user:
-        return jsonify({"error": "Bad id request."}, 400)
+        return jsonify({"error": "Bad id request."}), 400
     name = data.get("name")
     surname = data.get("surname")
-    year = data.get("year")
+    years = data.get("years")
     if request.method == "PUT":
-        if name and surname and year:
+        if name and surname and years:
             user.name = name
             user.surname = surname
-            user.year = year
+            user.years = years
         else:
-            return jsonify({"error": "Bad  put request."}, 400)
+            return jsonify({"error": "Bad  put request."}), 400
     elif request.method == "PATCH":
-        if not name and not surname and not year:
-            return jsonify({"error": "Bad patch request."}, 400)
+        if not name and not surname and not years:
+            return jsonify({"error": "Bad patch request."}), 400
         if name:
             user.name = name
         if surname:
             user.surname = surname
-        if year:
-            user.year = year
+        if years:
+            user.years = years
     db.session.commit()
-    return jsonify({"message": f"User id{user.id} updated"}, 201)
+    return jsonify({"message": f"User id{user.id} updated"}), 200
 
 
 @bp.route("/delete_user")
@@ -236,11 +239,106 @@ def delete_user():
     db.session.commit()
     return f"User {user_id} is deleted."
 
+@bp.route("/users/<user_id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+def show_one_user(user_id: str = None):
+    user = db.session.get(User, user_id)
+    u_err = validate_user(user)
+    if u_err:
+        return u_err
 
-@bp.route("/users")
+    if request.method == "GET":
+        return jsonify(convert_user_to_json(user)), 200
+
+    if request.method in ("PUT", "PATCH"):
+        ct_err = validation_content_type(request)
+        if ct_err:
+            return ct_err
+        # get data
+        data_user = request.get_json()
+        name = data_user.get("name", None)
+        surname = data_user.get("surname", None)
+        years = data_user.get("years", None)
+
+
+
+        if request.method == "PUT":
+            ny_err = validate_name_years(name, years)
+            if ny_err:
+                return ny_err
+            n_err = validate_name(name)
+            if n_err:
+                return n_err
+            y_err = validate_years(years)
+            if y_err:
+                return y_err
+            user.name = name
+            user.years = years
+            if surname:
+                user.surname = surname
+            db.session.commit()
+            return jsonify(convert_user_to_json(db.session.get(User, user_id))), 200
+
+        elif request.method == "PATCH":
+            if name:
+                n_err = validate_name(name)
+                if n_err:
+                    return n_err
+                user.name = name
+            if years:
+                y_err = validate_years(years)
+                if y_err:
+                    return y_err
+                user.years = years
+            if surname:
+                user.surname = surname
+            db.session.commit()
+            return jsonify(convert_user_to_json(db.session.get(User, user_id))), 200
+
+
+    elif request.method == "DELETE":
+        db.session.delete(user)
+        db.session.commit()
+        return "", 204
+
+    return None
+
+
+@bp.route("/users", methods=["GET", "POST"])
 def show_users():
-    users = User.query.all()
-    return "<br>".join(f"{user.id}. {user.name} {user.surname} - {user.birthday} years old" for user in users)
+    if request.method == "GET":
+        users = db.session.query(User).all()
+        return jsonify(convert_list_to_json(users)), 200
+
+    ct_err = validation_content_type(request)
+    if ct_err:
+        return ct_err
+
+    # get data
+    data_user = request.get_json()
+    name = data_user.get("name", None)
+    surname = data_user.get("surname", None)
+    years = data_user.get("years", None)
+
+    # validations
+    ny_err = validate_name_years(name, years)
+    if ny_err:
+        return ny_err
+    n_err = validate_name(name)
+    if n_err:
+        return n_err
+    y_err = validate_years(years)
+    if y_err:
+        return y_err
+
+    # create new user
+    if surname:
+        user = User(name=name, surname=surname, years=years)
+    else:
+        user = User(name=name, years=years)
+    db.session.add(user)
+    db.session.commit()
+    user = db.session.query(User).order_by(User.id.desc()).first()
+    return jsonify(convert_user_to_json(user)), 201
 
 
 @bp.route("/menu")

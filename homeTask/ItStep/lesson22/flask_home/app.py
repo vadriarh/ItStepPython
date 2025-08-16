@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, g, jsonify
 from flask_migrate import Migrate
 
 from models import db, Dish
+from routes import bp
 
 from dotenv import load_dotenv
 import os
@@ -14,7 +15,10 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('MENU_DATABASE')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-migrate = Migrate(app, db)  # Инициализация миграций
+# Инициализация компонентов
+db.init_app(app)  # SQLAlchemy
+migrate = Migrate(app, db)  # миграции
+app.register_blueprint(bp)  # маршруты
 
 # Initializing and adding in database, when is empty
 with app.app_context():
