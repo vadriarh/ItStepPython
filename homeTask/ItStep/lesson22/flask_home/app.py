@@ -1,5 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, g, jsonify
+from datetime import timedelta
+
+from flask import Flask
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager, create_access_token
 
 from models import db, Dish
 from routes import bp
@@ -14,11 +17,14 @@ app = Flask(__name__)
 # ORM-connection with SQLALCHEMY
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('MENU_DATABASE')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 
 # Инициализация компонентов
 db.init_app(app)  # SQLAlchemy
 migrate = Migrate(app, db)  # миграции
 app.register_blueprint(bp)  # маршруты
+jwt = JWTManager(app)
 
 # Initializing and adding in database, when is empty
 with app.app_context():

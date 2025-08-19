@@ -3,6 +3,8 @@ import os
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import func
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt
+from werkzeug.security import generate_password_hash, check_password_hash
 from models import *
 from validations import *
 from utils import *
@@ -47,6 +49,26 @@ def info():
     return message
 
 
+@bp.route("/reg", methods=["POST"])
+def register():
+    data = request.get_json()
+    hash_pass = generate_password_hash(data['password'])
+    new_user = Security(username=data['username'], password=hash_pass)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({"message": "User added succesfully!"}), 201
+
+
+@bp.route("/log", methods=["POST"])
+def login():
+    data = request.get_json()
+    user = db.session.query(Security).filter(Security.username == data['username']).first()
+    if user and check_password_hash(user.password, data['password']):
+        access_token = create_access_token(identity=user.username, additional_claims={'role': user.role})
+        return jsonify(access_token=access_token), 200
+    return jsonify({"error": "Invalid credentials"}), 401
+
+
 @bp.route("/register", methods=["GET", "POST"])
 def form_reg():
     if request.method == "GET":
@@ -64,7 +86,7 @@ def form_reg():
             return render_template('reg_form.html', error=error)
         # trying input userdata in bd
         try:
-            db.session.add(Login(login=login, password=password))
+            db.session.add(Security(login=login, password=password))
             db.session.commit()
             return "Новый пользователь зарегистрирован."
         except sqlite3.IntegrityError as e:
@@ -86,7 +108,7 @@ def form_log():
             error = "Please fill in all fields."
             return render_template('login_form.html', error=error)
         # check userdata into bd
-        user = db.session.query(Login).filter(Login.login == login).first()
+        user = db.session.query(Security).filter(Security.login == login).first()
         # finally checking userdata
         if user:
             if user["password"] == password:
@@ -239,6 +261,7 @@ def delete_user():
     db.session.commit()
     return f"User {user_id} is deleted."
 
+
 @bp.route("/users/<user_id>", methods=["GET", "PUT", "PATCH", "DELETE"])
 def show_one_user(user_id: str = None):
     user = db.session.get(User, user_id)
@@ -258,8 +281,6 @@ def show_one_user(user_id: str = None):
         name = data_user.get("name", None)
         surname = data_user.get("surname", None)
         years = data_user.get("years", None)
-
-
 
         if request.method == "PUT":
             ny_err = validate_name_years(name, years)
@@ -339,6 +360,22 @@ def show_users():
     db.session.commit()
     user = db.session.query(User).order_by(User.id.desc()).first()
     return jsonify(convert_user_to_json(user)), 201
+
+
+@bp.route('/user')
+@jwt_required()
+def get_users():
+    claims = get_jwt()
+    if claims['role'] == 'admin':
+        users = User.query.all()
+        # users = User.query.first()
+        # users = User.query.filter_by(name='Artur').first()
+        # users = User.query.filter(User.years > 20).all()
+        # users = User.query.get(1)
+        # users = User.query.count()
+        return jsonify(
+            [{"id": user.id, "name": user.name, "surname": user.surname, "years": user.years} for user in users]), 200
+    return jsonify({"error": "Access denied"}), 403
 
 
 @bp.route("/menu")
