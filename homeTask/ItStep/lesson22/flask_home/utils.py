@@ -13,3 +13,9 @@ def convert_list_to_json(users_list: list = None):
 
 def convert_error_to_json(error: str, details: str):
     return {"error": error, "details": details}
+
+def get_userinfo_from_json(request):
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    return username, password

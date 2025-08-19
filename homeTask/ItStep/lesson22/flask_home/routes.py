@@ -1,9 +1,9 @@
-import sqlite3
 import os
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import func
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt
+from flask_jwt_extended import (create_access_token, create_refresh_token,
+                                jwt_required, get_jwt)
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import *
 from validations import *
@@ -49,76 +49,136 @@ def info():
     return message
 
 
-@bp.route("/reg", methods=["POST"])
-def register():
-    data = request.get_json()
-    hash_pass = generate_password_hash(data['password'])
-    new_user = Security(username=data['username'], password=hash_pass)
+# @bp.route("/reg", methods=["POST"])
+# def reg():
+#     data = request.get_json()
+#     hash_pass = generate_password_hash(data['password'])
+#     new_user = Security(username=data['username'], password=hash_pass)
+#     db.session.add(new_user)
+#     db.session.commit()
+#     return jsonify({"message": "User added successfully!"}), 201
+#
+#
+# @bp.route("/log", methods=["POST"])
+# def log():
+#     data = request.get_json()
+#     user = db.session.query(Security).filter(Security.username == data['username']).first()
+#     if user and check_password_hash(user.password, data['password']):
+#         access_token = create_access_token(identity=user.username, additional_claims={'role': user.role})
+#         return jsonify(access_token=access_token), 200
+#     return jsonify({"error": "Invalid credentials"}), 401
+
+
+# old version (without AUTH)
+# @bp.route("/register", methods=["GET", "POST"])
+# def form_reg():
+#     if request.method == "GET":
+#         return render_template('reg_form.html')
+#     if request.method == "POST":
+#         # get userdata
+#         login = request.form.get("login")
+#         password = request.form.get("password")
+#         # validate input userdata
+#         if not login or not password:
+#             error = "Please fill in all fields."
+#             return render_template('reg_form.html', error=error)
+#         elif len(password) < 6:
+#             error = "Password must be at least 6 characters."
+#             return render_template('reg_form.html', error=error)
+#         # trying input userdata in bd
+#         try:
+#             db.session.add(Security(login=login, password=password))
+#             db.session.commit()
+#             return "Новый пользователь зарегистрирован."
+#         except sqlite3.IntegrityError as e:
+#             error = f"Ошибка сохранения: {e}"
+#             return render_template('reg_form.html', error=error)
+#     return render_template('reg_form.html')
+
+
+# new version (with AUTH)
+@bp.route("/register", methods=["POST"])
+def registration():
+    username, password = get_userinfo_from_json(request)
+
+    if not username or not password:
+        return jsonify({"err": "username and password are required"}), 400
+    if db.session.query(Security).filter_by(username=username).first():
+        return jsonify({"err": "username already exist"}), 409
+
+    hash_pass = generate_password_hash(password)
+    new_user = Security(username=username, password=hash_pass)
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({"message": "User added succesfully!"}), 201
+    return jsonify({"msg": "User added successfully!"}), 201
 
 
-@bp.route("/log", methods=["POST"])
-def login():
-    data = request.get_json()
-    user = db.session.query(Security).filter(Security.username == data['username']).first()
-    if user and check_password_hash(user.password, data['password']):
-        access_token = create_access_token(identity=user.username, additional_claims={'role': user.role})
-        return jsonify(access_token=access_token), 200
-    return jsonify({"error": "Invalid credentials"}), 401
+# old version (without AUTH)
+# @bp.route("/login", methods=["GET", "POST"])
+# def form_log():
+#     if request.method == "GET":
+#         return render_template('login_form.html')
+#     if request.method == "POST":
+#         # get userdata
+#         login = request.form.get("login")
+#         password = request.form.get("password")
+#         # validate input userdata
+#         if not login or not password:
+#             error = "Please fill in all fields."
+#             return render_template('login_form.html', error=error)
+#         # check userdata into bd
+#         user = db.session.query(Security).filter(Security.login == login).first()
+#         # finally checking userdata
+#         if user:
+#             if user["password"] == password:
+#                 return f"Добро пожаловать, {login}."
+#             error = "Пароли не совпадают."
+#             return render_template('login_form.html', error=error)
+#         else:
+#             error = "Такого пользователя не существует."
+#             return render_template('login_form.html', error=error)
+#     return render_template('login_form.html')
+
+# new version (with AUTH)
+@bp.route("/login", methods=["POST"])
+def authorization():
+    username, password = get_userinfo_from_json(request)
+
+    user = db.session.query(Security).filter_by(username=username).first()
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({"err": "Invalid credentials"}), 401
+
+    access_token = create_access_token(identity=user.username, additional_claims={'role': user.role})
+    refresh_token = create_refresh_token(identity=user.username, additional_claims={"role": user.role})
+    return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
 
-@bp.route("/register", methods=["GET", "POST"])
-def form_reg():
-    if request.method == "GET":
-        return render_template('reg_form.html')
-    if request.method == "POST":
-        # get userdata
-        login = request.form.get("login")
-        password = request.form.get("password")
-        # validate input userdata
-        if not login or not password:
-            error = "Please fill in all fields."
-            return render_template('reg_form.html', error=error)
-        elif len(password) < 6:
-            error = "Password must be at least 6 characters."
-            return render_template('reg_form.html', error=error)
-        # trying input userdata in bd
-        try:
-            db.session.add(Security(login=login, password=password))
-            db.session.commit()
-            return "Новый пользователь зарегистрирован."
-        except sqlite3.IntegrityError as e:
-            error = f"Ошибка сохранения: {e}"
-            return render_template('reg_form.html', error=error)
-    return render_template('reg_form.html')
+@bp.route("/profile", methods=["POST"])
+@jwt_required()
+def profile():
+    claims = get_jwt()
+    if claims["role"] not in ["admin", "user"]:
+        return jsonify({"err": "This resource only for signed users"}), 403
+    return jsonify({"msg": f"Welcome, {claims['sub']}"}), 200
 
 
-@bp.route("/login", methods=["GET", "POST"])
-def form_log():
-    if request.method == "GET":
-        return render_template('login_form.html')
-    if request.method == "POST":
-        # get userdata
-        login = request.form.get("login")
-        password = request.form.get("password")
-        # validate input userdata
-        if not login or not password:
-            error = "Please fill in all fields."
-            return render_template('login_form.html', error=error)
-        # check userdata into bd
-        user = db.session.query(Security).filter(Security.login == login).first()
-        # finally checking userdata
-        if user:
-            if user["password"] == password:
-                return f"Добро пожаловать, {login}."
-            error = "Пароли не совпадают."
-            return render_template('login_form.html', error=error)
-        else:
-            error = "Такого пользователя не существует."
-            return render_template('login_form.html', error=error)
-    return render_template('login_form.html')
+@bp.route("/admin", methods=["POST"])
+@jwt_required()
+def admin():
+    claims = get_jwt()
+    if claims["role"] != "admin":
+        return jsonify({"err": "Forbidden: admin only"}), 403
+    return jsonify({"msg": f"Welcome, master {claims['sub']}!!!"}), 200
+
+
+@bp.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    claims = get_jwt()
+    if claims["role"] not in ["admin", "user"]:
+        return jsonify({"err": "This resource only for signed users"}), 403
+    new_access_token = create_access_token(identity=claims["sub"], additional_claims={'role': claims['role']})
+    return jsonify(access_token=new_access_token), 200
 
 
 @bp.route("/comments", methods=["GET", "POST"])
